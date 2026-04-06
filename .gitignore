@@ -1,0 +1,21 @@
+# Python cache and virtual environment
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Local env files
+.env
+
+# Data artifacts (do not commit large/raw datasets)
+data/raw/
+data/processed/
+
+# Keep directory structure if needed
+!data/raw/.gitkeep
+!data/processed/.gitkeep
