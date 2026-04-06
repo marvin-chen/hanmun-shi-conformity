@@ -29,7 +29,7 @@ FEATURES_PATH = "data/processed/klc_features.csv"
 RESULTS_DIR  = "results"
 FIGURES_DIR  = "results/figures"
 
-PERIOD_ORDER  = ["pre_joseon", "early_joseon", "mid_joseon",
+PERIOD_ORDER  = ["early_joseon", "mid_joseon",
                  "late_joseon", "final_joseon"]
 PERIOD_LABELS = {
     "pre_joseon":    "Pre-Joseon\n(<1392)",
@@ -162,42 +162,42 @@ def author_conformity(df: pd.DataFrame, min_poems: int = 10) -> pd.DataFrame:
 # ── Step 5: Visualization ─────────────────────────────────────────────────────
 
 def plot_conformity_over_time(summary_df: pd.DataFrame, out_dir: str):
-    """
-    Line chart: mean conformity score per period, one line per form.
-    Core diachronic finding of the paper.
-    """
     os.makedirs(out_dir, exist_ok=True)
     fig, ax = plt.subplots(figsize=(10, 6))
 
     for form, color in FORM_COLORS.items():
         data = summary_df[summary_df["form_label"] == form].copy()
-        data["period"] = pd.Categorical(data["period"], categories=PERIOD_ORDER, ordered=True)
+        data["period"] = pd.Categorical(
+            data["period"], categories=PERIOD_ORDER, ordered=True
+        )
         data = data.sort_values("period")
+        # Drop any periods with no data (e.g. Pre-Joseon for these forms)
+        data = data[data["mean_conformity"].notna()]
         data = data[data["period"].isin(PERIOD_ORDER)]
 
         if len(data) == 0:
             continue
 
+        # Use integer positions — prevents string-axis/set_xticks misalignment
+        x_pos = [PERIOD_ORDER.index(str(p)) for p in data["period"]]
+
         ax.plot(
-            data["period"].astype(str),
+            x_pos,
             data["mean_conformity"],
             marker="o", linewidth=2.5, markersize=7,
             label=form, color=color,
         )
-        # Error band
-        if "std_conformity" in data.columns:
-            ax.fill_between(
-                data["period"].astype(str),
-                data["mean_conformity"] - data["std_conformity"],
-                data["mean_conformity"] + data["std_conformity"],
-                alpha=0.12, color=color,
-            )
+        # NO std shading — all four forms cluster 0.90–0.96, bands add clutter
 
     ax.set_xticks(range(len(PERIOD_ORDER)))
     ax.set_xticklabels([PERIOD_LABELS[p] for p in PERIOD_ORDER], fontsize=9)
     ax.set_ylabel("Mean Conformity Score (0–1)", fontsize=11)
-    ax.set_title("Structural Conformity to Tang Lüshi Norms\nby Joseon Period and Form", fontsize=13)
-    ax.set_ylim(0, 1.05)
+    ax.set_title(
+        "Structural Conformity to Tang Lüshi Norms\nby Joseon Period and Form",
+        fontsize=13,
+    )
+    # Zoom in to where the data actually lives — 0–1 compresses all variation
+    ax.set_ylim(0.85, 1.0)
     ax.legend(title="Form", fontsize=10)
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     plt.tight_layout()
@@ -254,13 +254,15 @@ def plot_form_distribution(df: pd.DataFrame, out_dir: str):
     os.makedirs(out_dir, exist_ok=True)
 
     forms_of_interest = ["qijue", "wujue", "qilu", "wulu", "wugushi", "qigushi"]
+    periods_for_forms = ["early_joseon", "mid_joseon", "late_joseon", "final_joseon"]
+
     labeled = df[df["form_label"].isin(forms_of_interest)]
-    labeled = labeled[labeled["period"].isin(PERIOD_ORDER)]
+    labeled = labeled[labeled["period"].isin(periods_for_forms)]
 
     pivot = (
         labeled.groupby(["period", "form_label"])
         .size().unstack(fill_value=0)
-        .reindex(PERIOD_ORDER)
+        .reindex(periods_for_forms)
         .reindex(columns=forms_of_interest, fill_value=0)
     )
     # Normalize to % within each period
@@ -268,7 +270,7 @@ def plot_form_distribution(df: pd.DataFrame, out_dir: str):
 
     fig, ax = plt.subplots(figsize=(11, 6))
     pivot_pct.plot(kind="bar", ax=ax, colormap="tab10", edgecolor="white")
-    ax.set_xticklabels([PERIOD_LABELS[p] for p in PERIOD_ORDER], rotation=0, fontsize=9)
+    ax.set_xticklabels([PERIOD_LABELS[p] for p in periods_for_forms], rotation=0, fontsize=9)
     ax.set_ylabel("% of Labeled Poems", fontsize=11)
     ax.set_title("Distribution of Poetic Forms in Korean Hanmun Shi\nby Joseon Period", fontsize=13)
     ax.yaxis.set_major_formatter(mtick.PercentFormatter())

@@ -12,9 +12,17 @@ venv/
 # Local env files
 .env
 
+# macOS metadata
+.DS_Store
+
 # Data artifacts (do not commit large/raw datasets)
 data/raw/
 data/processed/
+
+*.csv
+
+# Generated analysis outputs
+results/**/*.csv
 
 # Keep directory structure if needed
 !data/raw/.gitkeep
