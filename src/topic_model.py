@@ -311,7 +311,7 @@ def plot_dominant_topic_stacked(df_with_topics: pd.DataFrame, topics: list[dict]
     path = os.path.join(out_dir, "dominant_topic_stacked.png")
     plt.savefig(path, dpi=150)
     plt.close()
-    print(f"Saved → {path}")
+    print(f"Saved to {path}")
 
 
 # ── Main pipeline ─────────────────────────────────────────────────────────────
@@ -354,7 +354,7 @@ def run_topic_pipeline(skip_k_scan: bool = False):
     plot_topic_trends(summary, topics, out_dir=FIGURES_DIR)
     plot_dominant_topic_stacked(df_labeled, topics, out_dir=FIGURES_DIR)
 
-    print("\n✓ Topic modeling complete. Results in results/topics/")
+    print("\nTopic modeling complete. Results in results/topics/")
     print("\nNEXT STEP: Open results/topics/topics.json and manually label each topic.")
     print("Then re-run plot functions with labeled topics for paper-ready figures.\n")
 
