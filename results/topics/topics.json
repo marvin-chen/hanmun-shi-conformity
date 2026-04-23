@@ -83,7 +83,7 @@
         32.6
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Floral Ornamental Imagery"
   },
   {
     "topic_id": 1,
@@ -169,7 +169,7 @@
         20.1
       ]
     ],
-    "label": "UNLABELED"
+    "label": "River and Boating Landscape"
   },
   {
     "topic_id": 2,
@@ -255,7 +255,7 @@
         36.4
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Friendship and Correspondence"
   },
   {
     "topic_id": 3,
@@ -341,7 +341,7 @@
         21.1
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Cosmic Mountains and Qi"
   },
   {
     "topic_id": 4,
@@ -427,7 +427,7 @@
         28.9
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Personal Grief and Mortality"
   },
   {
     "topic_id": 5,
@@ -513,7 +513,7 @@
         43.4
       ]
     ],
-    "label": "UNLABELED"
+    "label": "War and Statecraft"
   },
   {
     "topic_id": 6,
@@ -599,7 +599,7 @@
         46.1
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Travel and Border Journey"
   },
   {
     "topic_id": 7,
@@ -685,7 +685,7 @@
         27.9
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Mountain Retreat and Temples"
   },
   {
     "topic_id": 8,
@@ -771,7 +771,7 @@
         32.6
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Seasonal Flowers and Melancholy"
   },
   {
     "topic_id": 9,
@@ -857,7 +857,7 @@
         35.5
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Literary Lineage and Scholarship"
   },
   {
     "topic_id": 10,
@@ -943,7 +943,7 @@
         21.1
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Plum Blossoms and Winter Flora"
   },
   {
     "topic_id": 11,
@@ -1029,7 +1029,7 @@
         41.7
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Family Lineage and Elegy"
   },
   {
     "topic_id": 12,
@@ -1115,7 +1115,7 @@
         40.6
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Geocultural Place Names"
   },
   {
     "topic_id": 13,
@@ -1201,7 +1201,7 @@
         33.0
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Interior Reflection and Study"
   },
   {
     "topic_id": 14,
@@ -1287,7 +1287,7 @@
         35.9
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Rain Wind Mountain Scenery"
   },
   {
     "topic_id": 15,
@@ -1373,7 +1373,7 @@
         35.3
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Rural Village Travel"
   },
   {
     "topic_id": 16,
@@ -1459,7 +1459,7 @@
         32.3
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Court Praise and Royal Grace"
   },
   {
     "topic_id": 17,
@@ -1545,7 +1545,7 @@
         44.3
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Agrarian Life and Peasantry"
   },
   {
     "topic_id": 18,
@@ -1631,7 +1631,7 @@
         46.4
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Aging Illness and Wine"
   },
   {
     "topic_id": 19,
@@ -1717,7 +1717,7 @@
         48.6
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Talent Reputation and Self"
   },
   {
     "topic_id": 20,
@@ -1803,7 +1803,7 @@
         16.5
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Daoist Mountain Wandering"
   },
   {
     "topic_id": 21,
@@ -1889,7 +1889,7 @@
         38.4
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Autumn Desolation and Solitude"
   },
   {
     "topic_id": 22,
@@ -1975,7 +1975,7 @@
         30.7
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Secluded River Mountain Purity"
   },
   {
     "topic_id": 23,
@@ -2061,7 +2061,7 @@
         31.3
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Friendship Banquets and Parting"
   },
   {
     "topic_id": 24,
@@ -2147,7 +2147,7 @@
         38.2
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Excursion Poetry and Pavilions"
   },
   {
     "topic_id": 25,
@@ -2233,7 +2233,7 @@
         33.1
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Neo Confucian Principle Discourse"
   },
   {
     "topic_id": 26,
@@ -2319,7 +2319,7 @@
         25.3
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Reclusion and Mountain Dwelling"
   },
   {
     "topic_id": 27,
@@ -2405,7 +2405,7 @@
         47.7
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Existential Wandering and Return"
   },
   {
     "topic_id": 28,
@@ -2491,7 +2491,7 @@
         31.5
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Books Hermitage and Old Age"
   },
   {
     "topic_id": 29,
@@ -2577,6 +2577,6 @@
         34.6
       ]
     ],
-    "label": "UNLABELED"
+    "label": "Night Thoughts and Separation"
   }
 ]
