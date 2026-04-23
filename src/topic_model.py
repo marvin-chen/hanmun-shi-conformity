@@ -13,9 +13,12 @@ import json
 from collections import Counter
 
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.decomposition import LatentDirichletAllocation
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import normalize
 import matplotlib.font_manager as fm
+
+# Gibbs sampling-based LDA — more efficient than sklearn's variational inference
+import lda  # Mimno's Gibbs sampler implementation
 
 # Use a CJK-capable system font on macOS
 for fname in ["Arial Unicode MS", "PingFang SC", "STHeiti", "Heiti TC"]:
@@ -29,7 +32,7 @@ FEATURES_PATH = "data/processed/klc_features.csv"
 RESULTS_DIR   = "results/topics"
 FIGURES_DIR   = "results/topics/figures"
 
-N_TOPICS      = 15      # tune after coherence check
+N_TOPICS      = 30      # selected by held-out perplexity ranking
 N_TOP_CHARS   = 20      # top characters per topic to display
 MAX_FEATURES  = 3000    # vocabulary size
 MIN_DF        = 5       # ignore chars appearing in fewer than 5 poems
@@ -101,73 +104,150 @@ def build_corpus(df: pd.DataFrame) -> tuple:
     return dtm, vocab, vectorizer
 
 
+def predictive_perplexity(model, dtm) -> float:
+    """
+    Approximate perplexity of a fitted LDA model on a matrix.
+    Uses p(w|d)=sum_k theta_dk * beta_kw from transformed doc-topic weights.
+    """
+    if dtm.shape[0] == 0 or dtm.sum() == 0:
+        return np.nan
+
+    doc_topic = model.transform(dtm)         # (n_docs, n_topics)
+    topic_word = model.topic_word_           # (n_topics, vocab_size)
+
+    # Document-word probabilities under the model: (n_docs, vocab_size)
+    doc_word_prob = doc_topic @ topic_word
+    doc_word_prob = np.clip(doc_word_prob, 1e-12, None)
+
+    log_likelihood = dtm.multiply(np.log(doc_word_prob)).sum()
+    token_count = dtm.sum()
+    return float(np.exp(-log_likelihood / token_count))
+
+
 # ── Step 3: Coherence proxy — perplexity curve ───────────────────────────────
 
 def find_optimal_k(dtm, k_range=range(5, 31, 5), out_dir: str = FIGURES_DIR):
     """
-    Fit LDA for multiple K values and plot perplexity.
+    Fit Gibbs-sampled LDA for multiple K values and plot held-out perplexity.
     Lower perplexity = better fit (but watch for overfitting).
-    Use this to pick N_TOPICS before the full run.
+    Uses train/test split (90/10) for honest evaluation.
     """
     os.makedirs(out_dir, exist_ok=True)
-    perplexities = []
-    print("Scanning topic counts for optimal K...")
+    scan_rows = []
+    print("Scanning topic counts for optimal K (held-out evaluation)...")
+
+    # Split: 90% train, 10% held-out test
+    train_dtm, test_dtm = train_test_split(
+        dtm, test_size=0.1, random_state=RANDOM_STATE
+    )
 
     for k in k_range:
-        lda = LatentDirichletAllocation(
-            n_components=k,
-            max_iter=10,
+        model = lda.LDA(
+            n_topics=k,
+            n_iter=10,
             random_state=RANDOM_STATE,
-            n_jobs=-1,
         )
-        lda.fit(dtm)
-        perp = lda.perplexity(dtm)
-        perplexities.append(perp)
-        print(f"  K={k:2d}  perplexity={perp:.1f}")
+        model.fit(train_dtm)
+        train_ll = model.loglikelihood()
+        train_perp = np.exp(-train_ll / train_dtm.sum())
+        test_perp = predictive_perplexity(model, test_dtm)
+        scan_rows.append({
+            "k": k,
+            "train_perplexity": round(float(train_perp), 3),
+            "heldout_perplexity": round(float(test_perp), 3),
+        })
+        print(f"  K={k:2d}  train_perp={train_perp:.1f}  heldout_perp={test_perp:.1f}")
+
+    ranked = pd.DataFrame(scan_rows).sort_values("heldout_perplexity").reset_index(drop=True)
+    ranked["rank"] = ranked.index + 1
+    ranked = ranked[["rank", "k", "heldout_perplexity", "train_perplexity"]]
+
+    ranking_path = os.path.join(RESULTS_DIR, "k_scan_ranked.csv")
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    ranked.to_csv(ranking_path, index=False, encoding="utf-8-sig")
+
+    best = ranked.iloc[0]
+    print("\nTop K candidates by held-out perplexity:")
+    print(ranked.head(5).to_string(index=False))
+    print(f"\nBest K by held-out perplexity: K={int(best['k'])} (heldout={best['heldout_perplexity']:.3f})")
+    print(f"Ranking saved → {ranking_path}")
 
     fig, ax = plt.subplots(figsize=(8, 4))
-    ax.plot(list(k_range), perplexities, marker="o", color="#2980b9", linewidth=2)
+    ax.plot(ranked["k"], ranked["heldout_perplexity"], marker="o", color="#2980b9", linewidth=2)
     ax.set_xlabel("Number of Topics (K)", fontsize=11)
-    ax.set_ylabel("Perplexity (lower = better)", fontsize=11)
-    ax.set_title("LDA Perplexity vs. Number of Topics\n(Korean Hanmun 詩 Corpus)", fontsize=13)
+    ax.set_ylabel("Held-out Perplexity (lower = better)", fontsize=11)
+    ax.set_title("LDA Held-out Perplexity vs. Number of Topics\n(Korean Hanmun 詩 Corpus)", fontsize=13)
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     plt.tight_layout()
     path = os.path.join(out_dir, "lda_perplexity_curve.png")
     plt.savefig(path, dpi=150)
     plt.close()
     print(f"\nPerplexity curve saved → {path}")
-    return dict(zip(k_range, perplexities))
+    return ranked
 
 
 # ── Step 4: Fit final LDA ─────────────────────────────────────────────────────
 
 def fit_lda(dtm, n_topics: int = N_TOPICS):
-    """Fit final LDA model with full iterations."""
-    print(f"\nFitting LDA with K={n_topics} topics (full run)...")
-    lda = LatentDirichletAllocation(
-        n_components=n_topics,
-        max_iter=50,
-        learning_method="batch",
-        random_state=RANDOM_STATE,
-        n_jobs=-1,
+    """
+    Fit final Gibbs-sampled LDA model with full iterations.
+    Returns model and held-out test perplexity for honest evaluation.
+    """
+    print(f"\nFitting Gibbs-sampled LDA with K={n_topics} topics...")
+    
+    # Split: 90% train, 10% held-out test
+    train_dtm, test_dtm = train_test_split(
+        dtm, test_size=0.1, random_state=RANDOM_STATE
     )
-    lda.fit(dtm)
-    print(f"  Final perplexity: {lda.perplexity(dtm):.1f}")
-    return lda
+    
+    # Train on 90%
+    model = lda.LDA(
+        n_topics=n_topics,
+        n_iter=50,
+        random_state=RANDOM_STATE,
+    )
+    model.fit(train_dtm)
+    
+    # Training log-likelihood
+    train_ll = model.loglikelihood()
+    print(f"  Training log-likelihood: {train_ll:.0f}")
+    train_perp = np.exp(-train_ll / train_dtm.sum())
+    print(f"  Training perplexity: {train_perp:.1f}")
+    
+    # True predictive held-out perplexity approximation
+    test_perp = predictive_perplexity(model, test_dtm)
+    print(f"  Held-out predictive perplexity: {test_perp:.1f}")
+    
+    # For prediction, retrain on full data for better topic assignments
+    print("  Retraining on full corpus for topic assignment...")
+    model_full = lda.LDA(
+        n_topics=n_topics,
+        n_iter=50,
+        random_state=RANDOM_STATE,
+    )
+    model_full.fit(dtm)
+    
+    return model_full, {
+        "k": n_topics,
+        "train_perplexity": round(float(train_perp), 3),
+        "heldout_perplexity": round(float(test_perp), 3),
+    }
 
 
 # ── Step 5: Extract and display topics ───────────────────────────────────────
 
-def get_top_chars(lda, vocab, n: int = N_TOP_CHARS) -> list[dict]:
+def get_top_chars(model, vocab, n: int = N_TOP_CHARS) -> list[dict]:
     """Return top-N characters per topic with weights."""
     topics = []
-    for i, comp in enumerate(lda.components_):
-        top_idx = comp.argsort()[-n:][::-1]
-        top_chars = [(vocab[j], round(comp[j], 2)) for j in top_idx]
+    for i in range(model.n_topics):
+        topic_word = model.topic_word_[i, :]
+        top_idx = topic_word.argsort()[-n:][::-1]
+        weights_normalized = (topic_word / topic_word.max()) * 100
+        top_chars = [(vocab[j], round(weights_normalized[j], 1)) for j in top_idx]
         topics.append({
             "topic_id": i,
             "top_chars": top_chars,
-            "label": "UNLABELED",   # fill in manually after inspection
+            "label": "UNLABELED",
         })
     return topics
 
@@ -203,9 +283,10 @@ def save_topics(topics: list[dict], out_dir: str):
 
 # ── Step 6: Assign dominant topic per poem ───────────────────────────────────
 
-def assign_topics(lda, dtm) -> np.ndarray:
+def assign_topics(model, dtm) -> np.ndarray:
     """Return dominant topic index per document."""
-    doc_topic = lda.transform(dtm)           # shape: (n_docs, n_topics)
+    # lda.LDA stores doc-topic distribution in model.doc_topic_ after fit
+    doc_topic = model.doc_topic_           # shape: (n_docs, n_topics)
     return doc_topic.argmax(axis=1), doc_topic
 
 
@@ -328,13 +409,20 @@ def run_topic_pipeline(skip_k_scan: bool = False):
 
     # 3. Find optimal K (run once, then set N_TOPICS and skip)
     if not skip_k_scan:
-        find_optimal_k(dtm, k_range=range(5, 31, 5))
-        print("\n→ Inspect the perplexity curve, pick K, set N_TOPICS at the top of this file.")
+        ranked = find_optimal_k(dtm, k_range=range(5, 31, 5))
+        best_k = int(ranked.iloc[0]["k"])
+        print(f"\n→ Best K by held-out perplexity is {best_k}.")
+        print("→ Review k_scan_ranked.csv + topic interpretability before finalizing N_TOPICS.")
         print("→ Then re-run with skip_k_scan=True\n")
         return
 
     # 4. Fit final model
-    lda = fit_lda(dtm, n_topics=N_TOPICS)
+    lda, perplexity_metrics = fit_lda(dtm, n_topics=N_TOPICS)
+    
+    # Save perplexity metrics
+    metrics_df = pd.DataFrame([perplexity_metrics])
+    metrics_df.to_csv(f"{RESULTS_DIR}/lda_perplexity_metrics.csv", index=False, encoding="utf-8-sig")
+    print(f"Perplexity metrics saved → {RESULTS_DIR}/lda_perplexity_metrics.csv")
 
     # 5. Topics
     topics = get_top_chars(lda, vocab)

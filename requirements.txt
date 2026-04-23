@@ -41,3 +41,6 @@ typing_extensions==4.15.0
 urllib3==2.6.3
 xxhash==3.6.0
 yarl==1.23.0
+scikit-learn>=1.0.0
+matplotlib>=3.0.0
+lda>=3.0.0
